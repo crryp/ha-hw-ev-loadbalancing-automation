@@ -1,0 +1,117 @@
+blueprint:
+  name: "Universal EV: Master Control"
+  description: "Coordinates charging modes and sub-automations via a central toggle."
+  domain: automation
+  input:
+    master_switch:
+      name: Master Input Boolean
+    sun_switch:
+      name: Sun Mode Flag (Boolean)
+    increase_automation:
+      name: Increase Amps Automation
+      selector: { entity: { domain: automation } }
+    decrease_automation:
+      name: Decrease Amps Automation
+      selector: { entity: { domain: automation } }
+    charge_mode_select:
+      name: EV Charge Mode Selector
+      selector: { entity: { domain: select } }
+    ev_current_entity:
+      name: EV Charge Current Number
+      selector: { entity: { domain: number } }
+    ev_charger_switch:
+      name: EV Charger Start/Stop Switch
+      selector: { entity: { domain: [switch, light] } }
+    wake_up_button:
+      name: EV Wake Up Button
+      selector: { entity: { domain: button } }
+    start_amps:
+      name: Start Amperes
+      default: 5
+      selector: { number: { min: 1, max: 16 } }
+    reset_amps:
+      name: Reset Amperes (On Disable)
+      default: 13
+      selector: { number: { min: 1, max: 32 } }
+
+mode: single
+
+trigger:
+  - platform: state
+    entity_id: !input master_switch
+    to: "on"
+    id: enable
+  - platform: state
+    entity_id: !input master_switch
+    to: "off"
+    id: disable
+
+action:
+  - choose:
+      # OPTION 1: Enable AND Sun Mode is ON
+      - conditions:
+          - condition: trigger
+            id: enable
+          - condition: state
+            entity_id: !input sun_switch
+            state: "on"
+        sequence:
+          - action: button.press
+            target: { entity_id: !input wake_up_button }
+          - action: select.select_option
+            target: { entity_id: !input charge_mode_select }
+            data: { option: "zero_charge_only" }
+          - delay: "00:00:10"
+          - action: automation.turn_on
+            target:
+              entity_id:
+                - !input increase_automation
+                - !input decrease_automation
+          - action: number.set_value
+            target: { entity_id: !input ev_current_entity }
+            data: { value: !input start_amps }
+          - action: switch.turn_on
+            target: { entity_id: !input ev_charger_switch }
+          - action: input_boolean.turn_off
+            target: { entity_id: !input sun_switch }
+
+      # OPTION 2: Enable AND Sun Mode is OFF
+      - conditions:
+          - condition: trigger
+            id: enable
+          - condition: state
+            entity_id: !input sun_switch
+            state: "off"
+        sequence:
+          - action: button.press
+            target: { entity_id: !input wake_up_button }
+          - action: select.select_option
+            target: { entity_id: !input charge_mode_select }
+            data: { option: "zero_charge_only" }
+          - delay: "00:00:10"
+          - action: automation.turn_on
+            target:
+              entity_id:
+                - !input increase_automation
+                - !input decrease_automation
+          - action: number.set_value
+            target: { entity_id: !input ev_current_entity }
+            data: { value: !input start_amps }
+
+      # OPTION 3: Disable
+      - conditions:
+          - condition: trigger
+            id: disable
+        sequence:
+          - action: select.select_option
+            target: { entity_id: !input charge_mode_select }
+            data: { option: "zero" }
+          - action: automation.turn_off
+            target:
+              entity_id:
+                - !input increase_automation
+                - !input decrease_automation
+            data: { stop_actions: true }
+          - action: number.set_value
+            target: { entity_id: !input ev_current_entity }
+            data: { value: !input reset_amps }

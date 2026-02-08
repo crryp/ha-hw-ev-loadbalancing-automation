@@ -1,0 +1,75 @@
+blueprint:
+  name: "Universal EV: Decrease Amps (Strict)"
+  description: "Lowers EV current or stops charging based on Grid draw from HomeWizard P1."
+  domain: automation
+  input:
+    grid_power_sensor:
+      name: HomeWizard P1 Grid Power
+      selector: { entity: { domain: sensor, device_class: power } }
+    decrease_threshold:
+      name: Grid Draw Threshold (Watts)
+      default: 250
+      selector: { number: { min: 0, max: 10000, unit_of_measurement: W } }
+    min_amps:
+      name: Minimum Charging Amperes
+      default: 6
+      selector: { number: { min: 1, max: 16, unit_of_measurement: A } }
+    ev_current_entity:
+      name: EV Charge (A) Current Number
+      selector: { entity: { domain: number } }
+    ev_charger_switch:
+      name: EV Charger Start/Stop Switch
+      selector: { entity: { domain: [switch, light] } }
+    ev_charging_power_sensor:
+      name: EV Actual Charging Power
+      selector: { entity: { domain: sensor, device_class: power } }
+
+mode: restart
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input grid_power_sensor
+    above: !input decrease_threshold
+    for: "00:05:00"
+  - platform: state
+    entity_id: 
+      - this.entity_id
+    from:
+      - "off"
+      - "on"
+
+action:
+  - repeat:
+      while:
+        - condition: numeric_state
+          entity_id: !input grid_power_sensor
+          above: !input decrease_threshold
+        - condition: numeric_state
+          entity_id: !input ev_charging_power_sensor
+          above: 50
+      sequence:
+        - choose:
+            - conditions:
+                - condition: template
+                  value_template: "{{ states(target_number) | int > (min_amps_val | int - 1) }}"
+              sequence:
+                - action: number.set_value
+                  target: { entity_id: !input ev_current_entity }
+                  data:
+                    value: "{{ states(target_number) | int - 1 }}"
+            - conditions:
+                - condition: template
+                  value_template: "{{ states(target_number) | int < min_amps_val | int }}"
+              sequence:
+                - action: switch.turn_off
+                  target: { entity_id: !input ev_charger_switch }
+        - wait_for_trigger:
+            - platform: numeric_state
+              entity_id: !input grid_power_sensor
+              above: !input decrease_threshold
+              for: "00:05:00"
+          timeout: "00:06:00"
+
+variables:
+  target_number: !input ev_current_entity
+  min_amps_val: !input min_amps

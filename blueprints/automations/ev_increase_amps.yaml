@@ -1,0 +1,100 @@
+blueprint:
+  name: "Universal EV: Increase Amps (Strict)"
+  description: "Increases current based on independent Grid and Battery thresholds."
+  domain: automation
+  input:
+    primary_surplus_sensor:
+      name: Primary Surplus Sensor (P1 or Grid)
+      selector: { entity: { domain: sensor, device_class: power } }
+    primary_inc_threshold:
+      name: Grid Increase Threshold (Watts)
+      default: 250
+      selector: { number: { min: 0, max: 5000, unit_of_measurement: W } }
+    plugin_battery_sensor:
+      name: (Optional) HomeWizard Plugin Battery
+      default: none
+      selector: { entity: { domain: sensor, device_class: power } }
+    battery_inc_threshold:
+      name: Battery Increase Threshold (Negative Watts)
+      default: -250
+      selector: { number: { min: -5000, max: 0, unit_of_measurement: W } }
+    max_amps:
+      name: Maximum Charging Amperes
+      default: 13
+      selector: { number: { min: 1, max: 16, unit_of_measurement: A } }
+    ev_current_entity:
+      name: EV Charge (A) Current Number
+      selector: { entity: { domain: number } }
+    ev_charging_power_sensor:
+      name: EV Actual Charging Power
+      selector: { entity: { domain: sensor, device_class: power } }
+
+mode: restart
+
+trigger_variables:
+  b_sensor: !input plugin_battery_sensor
+  b_limit: !input battery_inc_threshold
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input primary_surplus_sensor
+    above: !input primary_inc_threshold
+    for: "00:05:00"
+  - platform: template
+    value_template: >
+      {% if b_sensor != 'none' and states(b_sensor) is float %}
+        {{ states(b_sensor) | float < b_limit | float }}
+      {% else %}
+        false
+      {% endif %}
+    for: "00:05:00"
+  - platform: state
+    entity_id: 
+      - this.entity_id
+    from:
+      - "off"
+      - "on"
+
+action:
+  - repeat:
+      while:
+        - condition: template
+          value_template: "{{ states(target_number) | int < max_amps_val | int }}"
+        - condition: numeric_state
+          entity_id: !input ev_charging_power_sensor
+          above: 50
+        - condition: or
+          conditions:
+            - condition: numeric_state
+              entity_id: !input primary_surplus_sensor
+              above: !input primary_inc_threshold
+            - condition: template
+              value_template: >
+                {% if b_sensor != 'none' and states(b_sensor) is float %}
+                  {{ states(b_sensor) | float < b_limit | float }}
+                {% else %}
+                  false
+                {% endif %}
+      sequence:
+        - action: number.set_value
+          target: { entity_id: !input ev_current_entity }
+          data:
+            value: "{{ states(target_number) | int + 1 }}"
+        - wait_for_trigger:
+            - platform: numeric_state
+              entity_id: !input primary_surplus_sensor
+              above: !input primary_inc_threshold
+              for: "00:05:00"
+            - platform: template
+              value_template: >
+                {% if b_sensor != 'none' and states(b_sensor) is float %}
+                  {{ states(b_sensor) | float < b_limit | float }}
+                {% else %}
+                  false
+                {% endif %}
+              for: "00:05:00"
+          timeout: "00:06:00"
+
+variables:
+  target_number: !input ev_current_entity
+  max_amps_val: !input max_

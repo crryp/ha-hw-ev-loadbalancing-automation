@@ -1,0 +1,76 @@
+blueprint:
+  name: "Universal EV: Auto Start"
+  description: "Triggers system when surplus is high. Supports separate Grid and Battery thresholds."
+  domain: automation
+  input:
+    primary_surplus_sensor:
+      name: Primary Surplus Sensor (P1 or Grid)
+      selector: { entity: { domain: sensor, device_class: power } }
+    primary_start_threshold:
+      name: Grid Start Threshold (Watts)
+      default: 800
+      selector: { number: { min: 0, max: 5000, unit_of_measurement: W } }
+    plugin_battery_sensor:
+      name: (Optional) HomeWizard Plugin Battery
+      default: none
+      selector: { entity: { domain: sensor, device_class: power } }
+    battery_start_threshold:
+      name: Battery Start Threshold (Negative Watts)
+      default: -1200
+      selector: { number: { min: -5000, max: 0, unit_of_measurement: W } }
+    master_switch:
+      name: Master Input Boolean
+      selector: { entity: { domain: input_boolean } }
+    sun_switch:
+      name: Sun Mode Flag (Boolean)
+      selector: { entity: { domain: input_boolean } }
+    ev_soc_sensor:
+      name: EV State of Charge (%)
+      selector: { entity: { domain: sensor, device_class: battery } }
+    ev_limit_entity:
+      name: EV Charge Limit (%)
+      selector: { entity: { domain: [sensor, number] } }
+    ev_charging_power_sensor:
+      name: EV Actual Charging Power
+      selector: { entity: { domain: sensor, device_class: power } }
+    ev_cable_sensor:
+      name: EV Cable Connected Sensor
+      selector: { entity: { domain: [binary_sensor, sensor] } }
+
+trigger_variables:
+  b_sensor: !input plugin_battery_sensor
+  b_limit: !input battery_start_threshold
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input primary_surplus_sensor
+    above: !input primary_start_threshold
+    for: "00:05:00"
+  - platform: template
+    value_template: >
+      {% if b_sensor != 'none' and states(b_sensor) is float %}
+        {{ states(b_sensor) | float < b_limit | float }}
+      {% else %}
+        false
+      {% endif %}
+    for: "00:05:00"
+
+condition:
+  - condition: template
+    value_template: "{{ states(limit_ent) | float > states(soc_ent) | float }}"
+  - condition: numeric_state
+    entity_id: !input ev_charging_power_sensor
+    below: 50
+  - condition: state
+    entity_id: !input ev_cable_sensor
+    state: "on"
+
+action:
+  - action: input_boolean.turn_on
+    target: { entity_id: !input sun_switch }
+  - action: input_boolean.turn_on
+    target: { entity_id: !input master_switch }
+
+variables:
+  soc_ent: !input ev_soc_sensor
+  limit_ent: !input ev_limit_entity
