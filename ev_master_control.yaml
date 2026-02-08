@@ -1,0 +1,119 @@
+alias: Turn on / off ev load balancer automations
+description: Toggles between zero charge and normal mode based on input boolean
+triggers:
+  - trigger: state
+    entity_id:
+      - input_boolean.load_balancing_tesla
+    to: "on"
+    id: enable
+  - trigger: state
+    entity_id:
+      - input_boolean.load_balancing_tesla
+    to: "off"
+    id: disable
+conditions: []
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: enable
+          - condition: state
+            entity_id: input_boolean.load_balancing_tesla_sun
+            state:
+              - "on"
+        sequence:
+          - device_id: d525436a390be5403
+            domain: button
+            entity_id: a5a9e000415bb3ced
+            type: press
+          - device_id: b10d7b75b7677d926
+            domain: select
+            entity_id: 6c12c4cee37cdcba9
+            type: select_option
+            option: zero_charge_only
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 10
+              milliseconds: 0
+          - action: automation.turn_on
+            metadata: {}
+            target:
+              entity_id:
+                - automation.tesla_increase_amps_strict
+                - automation.tesla_decrease_amps_strict
+            data: {}
+          - action: number.set_value
+            metadata: {}
+            target:
+              entity_id: number.tesla_model_y_charge_current
+            data:
+              value: "5"
+          - type: turn_on
+            device_id: d525436a390be540341
+            entity_id: dff88316d32a7b7de2d
+            domain: switch
+          - action: input_boolean.turn_off
+            metadata: {}
+            target:
+              entity_id: input_boolean.load_balancing_tesla_sun
+            data: {}
+      - conditions:
+          - condition: trigger
+            id: enable
+          - condition: state
+            entity_id: input_boolean.load_balancing_tesla_sun
+            state:
+              - "off"
+        sequence:
+          - device_id: d525436a390be54034112
+            domain: button
+            entity_id: a5a9e000415bb3ced1d3f
+            type: press
+          - device_id: b10d7b75b7677d9262dd1
+            domain: select
+            entity_id: 6c12c4cee37cdcba915db
+            type: select_option
+            option: zero_charge_only
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 10
+              milliseconds: 0
+          - action: automation.turn_on
+            metadata: {}
+            target:
+              entity_id:
+                - automation.tesla_increase_amps_strict
+                - automation.tesla_decrease_amps_strict
+            data: {}
+          - action: number.set_value
+            metadata: {}
+            target:
+              entity_id: number.tesla_model_y_charge_current
+            data:
+              value: "5"
+      - conditions:
+          - condition: trigger
+            id: disable
+        sequence:
+          - device_id: b10d7b75b7677d9262
+            domain: select
+            entity_id: 6c12c4cee37cdcba91
+            type: select_option
+            option: zero
+          - action: automation.turn_off
+            metadata: {}
+            target:
+              entity_id:
+                - automation.tesla_increase_amps_strict
+                - automation.tesla_decrease_amps_strict
+            data:
+              stop_actions: true
+          - action: number.set_value
+            metadata: {}
+            target:
+              entity_id: number.tesla_model_y_charge_current
+            data:
+              value: "13"
+mode: single
