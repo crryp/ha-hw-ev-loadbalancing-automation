@@ -1,0 +1,80 @@
+alias: "Tesla: Increase Amps (Strict)"
+description: ""
+triggers:
+  - entity_id:
+      - sensor.batteries_total_current_power
+    above: 250
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+      milliseconds: 0
+    trigger: numeric_state
+  - trigger: state
+    entity_id:
+      - automation.tesla_increase_amps_strict
+    from:
+      - "off"
+      - "on"
+  - type: power
+    device_id: b10d7b75b7677d926
+    entity_id: accb724bb71082ced
+    domain: sensor
+    trigger: device
+    below: -250
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+conditions: []
+actions:
+  - repeat:
+      while:
+        - condition: numeric_state
+          entity_id: number.tesla_model_y_charge_current
+          below: 13
+        - type: is_power
+          condition: device
+          device_id: 44ea338f9fbc1b137
+          entity_id: 6f146328418078992
+          domain: sensor
+          above: 50
+        - condition: or
+          conditions:
+            - condition: numeric_state
+              entity_id: sensor.batteries_total_current_power
+              above: 250
+            - type: is_power
+              condition: device
+              device_id: b10d7b75b7677d9262
+              entity_id: accb724bb71082ced5
+              domain: sensor
+              below: -250
+      sequence:
+        - data:
+            value: "{{ states('number.tesla_model_y_charge_current') | int + 1 }}"
+          action: number.set_value
+          target:
+            entity_id: number.tesla_model_y_charge_current
+        - wait_for_trigger:
+            - entity_id:
+                - sensor.batteries_total_current_power
+              above: 250
+              for:
+                hours: 0
+                minutes: 5
+                seconds: 0
+                milliseconds: 0
+              trigger: numeric_state
+            - type: power
+              device_id: b10d7b75b7677d9262d
+              entity_id: accb724bb71082ced5d
+              domain: sensor
+              trigger: device
+              below: -250
+              for:
+                hours: 0
+                minutes: 5
+                seconds: 0
+          timeout: "00:06:00"
+mode: restart
