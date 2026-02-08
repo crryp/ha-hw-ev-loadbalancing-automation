@@ -3,18 +3,12 @@ blueprint:
   description: "Coordinates charging modes and sub-automations via a central toggle."
   domain: automation
   input:
-   master_switch:
+    master_switch:
       name: Master Input Boolean
-      selector:
-        entity:
-          filter:
-            domain: input_boolean
+      selector: { entity: { domain: input_boolean } }
     sun_switch:
       name: Sun Mode Flag (Boolean)
-      selector:
-        entity:
-          filter:
-            domain: input_boolean
+      selector: { entity: { domain: input_boolean } }
     increase_automation:
       name: Increase Amps Automation
       selector: { entity: { domain: automation } }
@@ -124,3 +118,4 @@ action:
             target: { entity_id: !input ev_current_entity }
 
             data: { value: !input reset_amps }
+
