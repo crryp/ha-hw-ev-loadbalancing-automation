@@ -30,11 +30,11 @@ blueprint:
     start_amps:
       name: Start Amperes
       default: 5
-      selector: { number: { min: 1, max: 16 } }
+      selector: { number: { min: 5, max: 16 } }
     reset_amps:
       name: Reset Amperes (On Disable)
       default: 13
-      selector: { number: { min: 1, max: 32 } }
+      selector: { number: { min: 5, max: 16 } }
 
 mode: single
 
@@ -118,4 +118,5 @@ action:
             target: { entity_id: !input ev_current_entity }
 
             data: { value: !input reset_amps }
+
 
