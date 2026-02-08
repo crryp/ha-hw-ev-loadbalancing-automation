@@ -1,4 +1,4 @@
-alias: "Tesla: Increase Amps (Strict)"
+alias: "Ev: Increase Amps (Strict)"
 description: ""
 triggers:
   - entity_id:
