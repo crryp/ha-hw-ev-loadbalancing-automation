@@ -1,1 +1,47 @@
-x
+alias: Ev start charging by sun power
+description: ""
+triggers:
+  - trigger: numeric_state
+    entity_id:
+      - sensor.batteries_total_power
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+    above: 1200
+  - type: power
+    device_id: b10d7b75b7677d9262dd
+    entity_id: accb724bb71082ced5d7
+    domain: sensor
+    trigger: device
+    below: -1200
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+conditions:
+  - condition: numeric_state
+    entity_id: number.tesla_model_y_charge_limit
+    above: sensor.tesla_model_y_batterijniveau
+  - type: is_power
+    condition: device
+    device_id: 44ea338f9fbc1b137ad
+    entity_id: 6f146328418078992e1
+    domain: sensor
+    below: 50
+  - condition: state
+    entity_id: binary_sensor.tesla_model_y_oplaadkabel
+    state:
+      - "on"
+actions:
+  - action: input_boolean.turn_on
+    metadata: {}
+    target:
+      entity_id: input_boolean.load_balancing_tesla_sun
+    data: {}
+  - action: input_boolean.turn_on
+    metadata: {}
+    target:
+      entity_id: input_boolean.load_balancing_tesla
+    data: {}
+mode: single
