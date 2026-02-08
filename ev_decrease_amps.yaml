@@ -1,0 +1,62 @@
+alias: "ev: Decrease Amps (Strict)"
+description: Lowers Tesla charging amps if grid draw is > 250W for 5 mins.
+triggers:
+  - trigger: numeric_state
+    entity_id:
+      - sensor.p1_meter_power
+    above: 250
+    for:
+      hours: 0
+      minutes: 5
+      seconds: 0
+  - trigger: state
+    entity_id:
+      - automation.tesla_decrease_amps_strict
+    from:
+      - "off"
+      - "on"
+conditions: []
+actions:
+  - repeat:
+      while:
+        - condition: numeric_state
+          entity_id: sensor.p1_meter_power
+          above: 250
+        - type: is_power
+          condition: device
+          device_id: 44ea338f9fbc1b137
+          entity_id: 6f146328418078992
+          domain: sensor
+          above: 50
+      sequence:
+        - choose:
+            - conditions:
+                - condition: numeric_state
+                  entity_id: number.tesla_model_y_charge_current
+                  above: 5
+              sequence:
+                - action: number.set_value
+                  data:
+                    value: >-
+                      {{ states('number.tesla_model_y_charge_current') | int - 1
+                      }}
+                  target:
+                    entity_id: number.tesla_model_y_charge_current
+            - conditions:
+                - condition: numeric_state
+                  entity_id: number.tesla_model_y_charge_current
+                  below: 6
+              sequence:
+                - type: turn_off
+                  device_id: d525436a390be540341
+                  entity_id: dff88316d32a7b7de2d
+                  domain: switch
+        - wait_for_trigger:
+            - trigger: numeric_state
+              entity_id:
+                - sensor.p1_meter_power
+              above: 250
+              for:
+                minutes: 5
+          timeout: "00:06:00"
+mode: restart
