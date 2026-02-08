@@ -1,1 +1,25 @@
-x
+alias: "Tesla load balancing uit "
+description: ""
+triggers:
+  - type: power
+    device_id: 44ea338f9fbc1b137
+    entity_id: 6f146328418078992
+    domain: sensor
+    trigger: device
+    below: 10
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 10
+conditions:
+  - condition: state
+    entity_id: input_boolean.load_balancing_tesla
+    state:
+      - "on"
+actions:
+  - action: input_boolean.turn_off
+    metadata: {}
+    target:
+      entity_id: input_boolean.load_balancing_tesla
+    data: {}
+mode: single
