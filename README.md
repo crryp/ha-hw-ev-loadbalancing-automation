@@ -63,8 +63,8 @@ This system uses **Independent Thresholds** and **Intentional Delays** for stabi
 
 | Threshold/Delay | Description | Recommended Value |
 | :--- | :--- | :--- |
-| **Grid Start** | Watts sent to grid before charging starts. | `800W` |
-| **Battery Start** | Watts pulled from Plugin Battery before charging starts. | `-1200W` |
+| **Grid Start** | Watts sent to grid before charging starts. | `-1200W` |
+| **Battery Start** | Watts pulled from Plugin Battery before charging starts. | `1200W` |
 | **5-Minute Filter** | Time the surplus must be stable before starting or ramping up. | `Fixed` |
 
 ### Why the 5-Minute Delay? (Cloud Protection)
